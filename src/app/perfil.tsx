@@ -13,6 +13,7 @@ import { View, StyleSheet } from 'react-native';
 import { PowerCore } from '@/components/PowerCore';
 import { Reveal, SectionHeader } from '@/components/common';
 import { exercises, exerciseLevel, overallLevel, user } from '@/data/mock';
+import { useStore } from '@/store/useStore';
 import { Badge } from '@/ui/Badge';
 import { Card } from '@/ui/Card';
 import { PressableScale } from '@/ui/PressableScale';
@@ -22,6 +23,8 @@ import { palette, radius, space } from '@/theme/tokens';
 
 export default function PerfilScreen() {
   const level = overallLevel();
+  const showToast = useStore((s) => s.showToast);
+  const soon = (o: string) => showToast(`${o} vem em breve`, 'info');
 
   return (
     <Screen>
@@ -58,7 +61,7 @@ export default function PerfilScreen() {
       </Reveal>
 
       {/* Goal */}
-      <SectionHeader title="OBJETIVO" actionLabel="Mudar" />
+      <SectionHeader title="OBJETIVO" actionLabel="Mudar" onAction={() => soon('Trocar objetivo')} />
       <Reveal index={2}>
         <Card>
           <View style={styles.goalRow}>
@@ -103,15 +106,15 @@ export default function PerfilScreen() {
       <SectionHeader title="AJUSTES" />
       <Reveal index={4}>
         <Card padded={false}>
-          <SettingRow icon={Music} color={palette.magenta} label="Conectar música" hint="YouTube" />
-          <SettingRow icon={Sparkles} color={palette.lime} label="IA de dieta" hint="Ativa" border />
-          <SettingRow icon={Bell} color={palette.cyan} label="Notificações" hint="On" border />
-          <SettingRow icon={Ruler} color={palette.gold} label="Unidades" hint="kg · cm" border />
+          <SettingRow icon={Music} color={palette.magenta} label="Conectar música" hint="YouTube" onPress={() => soon('Player de música')} />
+          <SettingRow icon={Sparkles} color={palette.lime} label="IA de dieta" hint="Ativa" border onPress={() => soon('IA de dieta')} />
+          <SettingRow icon={Bell} color={palette.cyan} label="Notificações" hint="On" border onPress={() => soon('Notificações')} />
+          <SettingRow icon={Ruler} color={palette.gold} label="Unidades" hint="kg · cm" border onPress={() => soon('Ajuste de unidades')} />
         </Card>
       </Reveal>
 
       <Reveal index={5}>
-        <PressableScale style={styles.logout} haptic={false}>
+        <PressableScale style={styles.logout} haptic={false} onPress={() => soon('Login/logout')}>
           <LogOut size={18} color={palette.danger} strokeWidth={2.2} />
           <Text variant="subtitle" color={palette.danger}>
             Sair
@@ -148,15 +151,17 @@ function SettingRow({
   label,
   hint,
   border,
+  onPress,
 }: {
   icon: LucideIcon;
   color: string;
   label: string;
   hint?: string;
   border?: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <PressableScale haptic={false}>
+    <PressableScale haptic={false} onPress={onPress}>
       <View style={[styles.settingRow, border && styles.border]}>
         <View style={[styles.settingIcon, { backgroundColor: color + '1A' }]}>
           <Icon size={18} color={color} strokeWidth={2.2} />

@@ -2,7 +2,8 @@ import { Apple, Dumbbell, Inbox, Send, UserPlus, Utensils } from 'lucide-react-n
 import { View, StyleSheet } from 'react-native';
 
 import { Reveal, SectionHeader } from '@/components/common';
-import { friends, inbox, type SharedItem } from '@/data/mock';
+import { type SharedItem } from '@/data/mock';
+import { useStore } from '@/store/useStore';
 import { Badge } from '@/ui/Badge';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
@@ -18,6 +19,23 @@ const typeMeta: Record<SharedItem['tipo'], { icon: typeof Dumbbell; color: strin
 };
 
 export default function SocialScreen() {
+  const inbox = useStore((s) => s.inbox);
+  const friends = useStore((s) => s.friends);
+  const importItem = useStore((s) => s.importItem);
+  const clearInbox = useStore((s) => s.clearInbox);
+  const showToast = useStore((s) => s.showToast);
+
+  const onImport = (item: SharedItem) => {
+    importItem(item.id);
+    const verbo = item.tipo === 'treino' ? 'Treino' : item.tipo === 'dieta' ? 'Dieta' : 'Receita';
+    showToast(`${verbo} "${item.titulo}" importado!`, 'good');
+  };
+  const onClear = () => {
+    if (inbox.length === 0) return;
+    clearInbox();
+    showToast('Caixa de entrada limpa', 'info');
+  };
+
   return (
     <Screen>
       <Reveal index={0}>
@@ -28,17 +46,32 @@ export default function SocialScreen() {
             </Text>
             <Text variant="display">SQUAD</Text>
           </View>
-          <PressableScale style={styles.addBtn}>
+          <PressableScale
+            style={styles.addBtn}
+            onPress={() => showToast('Adicionar amigos vem com o backend', 'info')}>
             <UserPlus size={20} color={palette.bg} strokeWidth={2.6} />
           </PressableScale>
         </View>
       </Reveal>
 
       {/* Inbox — shared items */}
-      <SectionHeader title="RECEBIDOS" actionLabel="Limpar" />
+      <SectionHeader title="RECEBIDOS" actionLabel={inbox.length ? 'Limpar' : undefined} onAction={onClear} />
       <Reveal index={1}>
-        <View style={{ gap: space.md }}>
-          {inbox.map((item) => {
+        {inbox.length === 0 ? (
+          <Card>
+            <View style={styles.emptyInbox}>
+              <Inbox size={24} color={palette.inkFaint} strokeWidth={2} />
+              <Text variant="bodyMd" color={palette.inkMuted}>
+                Nada por aqui
+              </Text>
+              <Text variant="caption" color={palette.inkFaint} center>
+                Treinos e dietas que a galera mandar aparecem aqui.
+              </Text>
+            </View>
+          </Card>
+        ) : (
+          <View style={{ gap: space.md }}>
+            {inbox.map((item) => {
             const meta = typeMeta[item.tipo];
             const Icon = meta.icon;
             return (
@@ -63,13 +96,27 @@ export default function SocialScreen() {
                   </View>
                 </View>
                 <View style={styles.inboxActions}>
-                  <Button label="Importar" size="sm" fullWidth={false} style={{ flex: 1 }} />
-                  <Button label="Ver" size="sm" variant="secondary" fullWidth={false} style={{ flex: 1 }} />
+                  <Button
+                    label="Importar"
+                    size="sm"
+                    fullWidth={false}
+                    style={{ flex: 1 }}
+                    onPress={() => onImport(item)}
+                  />
+                  <Button
+                    label="Ver"
+                    size="sm"
+                    variant="secondary"
+                    fullWidth={false}
+                    style={{ flex: 1 }}
+                    onPress={() => showToast(`${item.titulo} · ${item.detalhe}`, 'info')}
+                  />
                 </View>
               </Card>
             );
-          })}
-        </View>
+            })}
+          </View>
+        )}
       </Reveal>
 
       {/* Friends */}
@@ -93,7 +140,9 @@ export default function SocialScreen() {
                   {f.handle} · {f.streak} dias de ofensiva
                 </Text>
               </View>
-              <PressableScale style={styles.sendBtn} haptic={false}>
+              <PressableScale
+                style={styles.sendBtn}
+                onPress={() => showToast(`Mandar treino/dieta pro ${f.nome} 🔜`, 'info')}>
                 <Send size={16} color={palette.lime} strokeWidth={2.4} />
               </PressableScale>
             </View>
@@ -179,5 +228,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: space.xl,
     paddingHorizontal: space.lg,
+  },
+  emptyInbox: {
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: space.lg,
   },
 });

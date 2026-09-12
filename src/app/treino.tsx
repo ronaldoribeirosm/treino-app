@@ -3,7 +3,8 @@ import { Check, Crown, Flame, Plus, Radio, TrendingUp, Zap } from 'lucide-react-
 import { View, StyleSheet } from 'react-native';
 
 import { Reveal, SectionHeader } from '@/components/common';
-import { lastLivePodium, todayWorkout } from '@/data/mock';
+import { lastLivePodium } from '@/data/mock';
+import { useStore } from '@/store/useStore';
 import { Badge } from '@/ui/Badge';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
@@ -15,7 +16,15 @@ import { palette, radius, space } from '@/theme/tokens';
 const medals = ['#FFC53D', '#C0C6D4', '#CD7F44'];
 
 export default function TreinoScreen() {
+  const workout = useStore((s) => s.workout);
+  const toggleExercise = useStore((s) => s.toggleExercise);
+  const showToast = useStore((s) => s.showToast);
   const sorted = [...lastLivePodium].sort((a, b) => b.volume - a.volume);
+
+  const onToggle = (id: string, nome: string, done: boolean) => {
+    toggleExercise(id);
+    if (!done) showToast(`${nome} concluído 💪`, 'good');
+  };
 
   return (
     <Screen>
@@ -62,7 +71,11 @@ export default function TreinoScreen() {
             <Text variant="body" color={palette.inkMuted} style={{ marginTop: 2, marginBottom: space.lg }}>
               Mesma sessão sincronizada, música compartilhada e pódio no fim.
             </Text>
-            <Button label="Iniciar sessão ao vivo" icon={Zap} />
+            <Button
+              label="Iniciar sessão ao vivo"
+              icon={Zap}
+              onPress={() => showToast('Treino ao vivo chega na próxima fase 🔜', 'info')}
+            />
           </View>
         </Card>
       </Reveal>
@@ -73,15 +86,15 @@ export default function TreinoScreen() {
         <Card padded={false}>
           <View style={styles.woHead}>
             <View style={{ flex: 1 }}>
-              <Text variant="subtitle">{todayWorkout.nome}</Text>
+              <Text variant="subtitle">{workout.nome}</Text>
               <Text variant="caption" color={palette.inkMuted} style={{ marginTop: 2 }}>
-                {todayWorkout.exercicios.length} exercícios
+                {workout.exercicios.filter((e) => e.done).length}/{workout.exercicios.length} concluídos
               </Text>
             </View>
             <Badge label="PUSH A" color={palette.cyan} />
           </View>
-          {todayWorkout.exercicios.map((ex, i) => (
-            <PressableScale key={i} haptic={false}>
+          {workout.exercicios.map((ex) => (
+            <PressableScale key={ex.id} haptic onPress={() => onToggle(ex.id, ex.nome, ex.done)}>
               <View style={[styles.exRow, styles.exBorder]}>
                 <View
                   style={[
@@ -102,7 +115,7 @@ export default function TreinoScreen() {
                   <View style={styles.pctChip}>
                     <TrendingUp size={12} color={palette.success} strokeWidth={2.6} />
                     <Text variant="mono" color={palette.success} style={{ fontSize: 11 }}>
-                      +3%
+                      +{ex.pct}%
                     </Text>
                   </View>
                 ) : (
@@ -114,7 +127,12 @@ export default function TreinoScreen() {
             </PressableScale>
           ))}
           <View style={{ padding: space.lg }}>
-            <Button label="Adicionar exercício" icon={Plus} variant="secondary" />
+            <Button
+              label="Adicionar exercício"
+              icon={Plus}
+              variant="secondary"
+              onPress={() => showToast('Editor de treino vem em breve', 'info')}
+            />
           </View>
         </Card>
       </Reveal>

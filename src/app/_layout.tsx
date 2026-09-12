@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppTabs from '@/components/app-tabs';
+import { Toaster } from '@/ui/Toast';
 import { useAppFonts } from '@/theme/useAppFonts';
 import { palette } from '@/theme/tokens';
 
@@ -27,6 +28,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="light" />
         <AppTabs />
+        <Toaster />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

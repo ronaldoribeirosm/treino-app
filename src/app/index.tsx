@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import {
   Bell,
   ChevronRight,
@@ -9,21 +10,16 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react-native';
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 
+import { AddMealSheet } from '@/components/AddMealSheet';
 import { LineChart } from '@/components/charts/LineChart';
 import { RingProgress } from '@/components/charts/RingProgress';
 import { PowerCore } from '@/components/PowerCore';
 import { Reveal, SectionHeader, StatTile, XPBar } from '@/components/common';
-import {
-  exercises,
-  friends,
-  kcalWeek,
-  overallLevel,
-  todayDiet,
-  todayWorkout,
-  user,
-} from '@/data/mock';
+import { exercises, kcalWeek, overallLevel, user } from '@/data/mock';
+import { useStore } from '@/store/useStore';
 import { computeStatus } from '@/lib/stats';
 import { Badge } from '@/ui/Badge';
 import { Button } from '@/ui/Button';
@@ -34,11 +30,21 @@ import { Text } from '@/ui/Text';
 import { palette, radius, space } from '@/theme/tokens';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const level = overallLevel();
   const supino = exercises[0];
   const supinoSeries = supino.history.map((h) => h.topSet);
 
-  const todayKcal = todayDiet.reduce((a, d) => a + d.kcal, 0);
+  const diet = useStore((s) => s.diet);
+  const workout = useStore((s) => s.workout);
+  const [mealOpen, setMealOpen] = useState(false);
+
+  const todayKcal = diet.reduce((a, d) => a + d.kcal, 0);
+  const macros = {
+    prot: diet.reduce((a, d) => a + d.prot, 0),
+    carb: diet.reduce((a, d) => a + d.carb, 0),
+    gord: diet.reduce((a, d) => a + d.gord, 0),
+  };
   const avgKcal = Math.round(kcalWeek.reduce((a, d) => a + d.kcal, 0) / kcalWeek.length);
   const status = computeStatus({
     workoutsThisWeek: 4,
@@ -50,7 +56,8 @@ export default function HomeScreen() {
   const statusColor =
     status.tone === 'good' ? palette.success : status.tone === 'warn' ? palette.warning : palette.danger;
 
-  const doneCount = todayWorkout.exercicios.filter((e) => e.done).length;
+  const friends = useStore((s) => s.friends);
+  const doneCount = workout.exercicios.filter((e) => e.done).length;
 
   return (
     <Screen>
@@ -132,14 +139,14 @@ export default function HomeScreen() {
       </Reveal>
 
       {/* Today's workout */}
-      <SectionHeader title="TREINO DE HOJE" actionLabel="Ver tudo" />
+      <SectionHeader title="TREINO DE HOJE" actionLabel="Ver tudo" onAction={() => router.push('/treino')} />
       <Reveal index={4}>
         <Card padded={false}>
           <View style={styles.workoutHead}>
             <View style={{ flex: 1 }}>
-              <Text variant="subtitle">{todayWorkout.nome}</Text>
+              <Text variant="subtitle">{workout.nome}</Text>
               <Text variant="caption" color={palette.inkMuted} style={{ marginTop: 2 }}>
-                {doneCount}/{todayWorkout.exercicios.length} exercícios · {todayWorkout.exercicios.length * 4} séries
+                {doneCount}/{workout.exercicios.length} exercícios · {workout.exercicios.length * 4} séries
               </Text>
             </View>
             <Badge label="PUSH A" color={palette.cyan} />
@@ -148,18 +155,22 @@ export default function HomeScreen() {
             <View
               style={[
                 styles.progressFill,
-                { width: `${(doneCount / todayWorkout.exercicios.length) * 100}%` },
+                { width: `${(doneCount / workout.exercicios.length) * 100}%` },
               ]}
             />
           </View>
           <View style={{ padding: space.lg, paddingTop: space.md }}>
-            <Button label="Continuar treino" icon={Play} />
+            <Button
+              label={doneCount === workout.exercicios.length ? 'Treino concluído' : 'Continuar treino'}
+              icon={Play}
+              onPress={() => router.push('/treino')}
+            />
           </View>
         </Card>
       </Reveal>
 
       {/* Nutrition ring */}
-      <SectionHeader title="NUTRIÇÃO HOJE" actionLabel="Registrar" />
+      <SectionHeader title="NUTRIÇÃO HOJE" actionLabel="Registrar" onAction={() => setMealOpen(true)} />
       <Reveal index={5}>
         <Card>
           <View style={styles.nutriRow}>
@@ -172,9 +183,9 @@ export default function HomeScreen() {
               </View>
             </RingProgress>
             <View style={styles.macros}>
-              <Macro label="Proteína" value={86} target={180} color={palette.magenta} />
-              <Macro label="Carbo" value={150} target={330} color={palette.lime} />
-              <Macro label="Gordura" value={35} target={80} color={palette.gold} />
+              <Macro label="Proteína" value={macros.prot} target={180} color={palette.magenta} />
+              <Macro label="Carbo" value={macros.carb} target={330} color={palette.lime} />
+              <Macro label="Gordura" value={macros.gord} target={80} color={palette.gold} />
             </View>
           </View>
         </Card>
@@ -205,11 +216,11 @@ export default function HomeScreen() {
       </Reveal>
 
       {/* Squad teaser */}
-      <SectionHeader title="SEU SQUAD" actionLabel="Abrir" />
+      <SectionHeader title="SEU SQUAD" actionLabel="Abrir" onAction={() => router.push('/social')} />
       <Reveal index={7}>
         <Card padded={false}>
           {friends.slice(0, 3).map((f, i) => (
-            <PressableScale key={f.id} haptic={false}>
+            <PressableScale key={f.id} haptic={false} onPress={() => router.push('/social')}>
               <View style={[styles.friendRow, i > 0 && styles.friendBorder]}>
                 <View style={[styles.avatar, { borderColor: f.levelColor }]}>
                   <Text variant="displaySm" color={f.levelColor}>
@@ -232,6 +243,8 @@ export default function HomeScreen() {
           ))}
         </Card>
       </Reveal>
+
+      <AddMealSheet visible={mealOpen} onClose={() => setMealOpen(false)} />
     </Screen>
   );
 }
