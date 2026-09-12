@@ -45,6 +45,22 @@ Log honesto do que foi realmente construído e validado a cada etapa.
 
 **Ainda NÃO existe:** backend/nuvem (dados ficam só no aparelho, sem sincronizar entre amigos), IA real, treino ao vivo, música. Próximo: **B — Supabase**.
 
+## Etapa 4 (B) — Backend Supabase [em andamento]
+
+**Feito e validado:**
+- Projeto Supabase criado (região SP). Cliente configurado (`src/lib/supabase.ts`) lendo `.env`
+  (`EXPO_PUBLIC_SUPABASE_URL` / `_KEY` com a chave publishable). Conexão testada (auth health 200).
+- **Schema completo** em `supabase/schema.sql` (profiles, dieta, peso, treinos, sessões, séries,
+  amizades, compartilhamentos) com **RLS** e trigger que cria o perfil no cadastro.
+- **Login / cadastro** (`AuthScreen`) com a marca "FORJA"; portão de auth no `_layout`
+  (sem sessão → login; com sessão → app). Tela renderiza sem erros.
+- `.env` fora do Git; `.env.example` versionado.
+
+**Falta nesta etapa:** rodar o `schema.sql` no Supabase (ação do usuário), testar cadastro/login
+real, e sincronizar os dados (dieta, amigos, compartilhamentos) com a nuvem.
+
+**Nome do app:** provisório "FORJA" (trocável).
+
 **Decisões em aberto (do usuário, não técnicas):**
 - Nome definitivo do app (provisório: "treino-app").
 - Repo público vs privado (subiu como público seguindo a convenção padrão).

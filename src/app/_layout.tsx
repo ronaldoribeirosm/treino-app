@@ -6,6 +6,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppTabs from '@/components/app-tabs';
+import { AuthScreen } from '@/components/AuthScreen';
+import { useAuth } from '@/lib/useAuth';
 import { useStore } from '@/store/useStore';
 import { Toaster } from '@/ui/Toast';
 import { useAppFonts } from '@/theme/useAppFonts';
@@ -16,7 +18,8 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();
   const hydrated = useStore((s) => s.hydrated);
-  const ready = fontsLoaded && hydrated;
+  const { session, loading: authLoading } = useAuth();
+  const ready = fontsLoaded && hydrated && !authLoading;
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
@@ -30,7 +33,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.bg }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <AppTabs />
+        {session ? <AppTabs /> : <AuthScreen />}
         <Toaster />
       </SafeAreaProvider>
     </GestureHandlerRootView>
