@@ -33,6 +33,18 @@ Log honesto do que foi realmente construído e validado a cada etapa.
 
 **Ainda NÃO existe:** persistência (fecha o app e volta ao mock), backend, IA real, treino ao vivo, música. Segue igual à Etapa 1.
 
+## Etapa 3 (A) — Persistência local
+
+**Validado de verdade (testado com Playwright, recarregando a página):**
+- Estado salvo no aparelho com `zustand/persist` + AsyncStorage (localStorage no web).
+- Teste: adicionar comida (4→5 itens, 1320→1410 kcal) → recarregar → **continua salvo**. Sem erros.
+- Reset automático quando vira o dia: zera a dieta e desmarca o treino (`rolloverDay`).
+- App só renderiza depois de hidratar o estado salvo (sem "piscar" o dado de exemplo).
+
+**Agora o app lembra os dados ao fechar/reabrir** (uso solo já funciona de verdade no seu celular).
+
+**Ainda NÃO existe:** backend/nuvem (dados ficam só no aparelho, sem sincronizar entre amigos), IA real, treino ao vivo, música. Próximo: **B — Supabase**.
+
 **Decisões em aberto (do usuário, não técnicas):**
 - Nome definitivo do app (provisório: "treino-app").
 - Repo público vs privado (subiu como público seguindo a convenção padrão).
