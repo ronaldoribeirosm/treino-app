@@ -1,0 +1,215 @@
+import {
+  Bell,
+  ChevronRight,
+  LogOut,
+  Music,
+  Ruler,
+  Sparkles,
+  Target,
+  type LucideIcon,
+} from 'lucide-react-native';
+import { View, StyleSheet } from 'react-native';
+
+import { PowerCore } from '@/components/PowerCore';
+import { Reveal, SectionHeader } from '@/components/common';
+import { exercises, exerciseLevel, overallLevel, user } from '@/data/mock';
+import { Badge } from '@/ui/Badge';
+import { Card } from '@/ui/Card';
+import { PressableScale } from '@/ui/PressableScale';
+import { Screen } from '@/ui/Screen';
+import { Text } from '@/ui/Text';
+import { palette, radius, space } from '@/theme/tokens';
+
+export default function PerfilScreen() {
+  const level = overallLevel();
+
+  return (
+    <Screen>
+      <Reveal index={0}>
+        <View style={styles.profileHead}>
+          <PowerCore color={level.color} size={104}>
+            <Text variant="hero" color={level.color} style={{ fontSize: 40, lineHeight: 40 }}>
+              {user.nome[0]}
+            </Text>
+          </PowerCore>
+          <Text variant="display" style={{ marginTop: space.md }}>
+            {user.nome.toUpperCase()}
+          </Text>
+          <Text variant="caption" color={palette.inkMuted}>
+            {user.handle}
+          </Text>
+          <View style={{ marginTop: space.sm }}>
+            <Badge label={`NÍVEL ${level.name}`} color={level.color} />
+          </View>
+        </View>
+      </Reveal>
+
+      {/* Quick facts */}
+      <Reveal index={1}>
+        <Card style={{ marginTop: space.xl }}>
+          <View style={styles.factsRow}>
+            <Fact value={`${user.pesoAtual.toFixed(1)}`} unit="kg" label="Peso" />
+            <View style={styles.factDivider} />
+            <Fact value={`${user.altura}`} unit="cm" label="Altura" />
+            <View style={styles.factDivider} />
+            <Fact value={`${user.streak}`} unit="d" label="Ofensiva" />
+          </View>
+        </Card>
+      </Reveal>
+
+      {/* Goal */}
+      <SectionHeader title="OBJETIVO" actionLabel="Mudar" />
+      <Reveal index={2}>
+        <Card>
+          <View style={styles.goalRow}>
+            <View style={[styles.goalIcon, { backgroundColor: palette.cyan + '1F' }]}>
+              <Target size={22} color={palette.cyan} strokeWidth={2.2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text variant="subtitle">Ganhar massa (bulking)</Text>
+              <Text variant="caption" color={palette.inkMuted}>
+                Meta: {user.pesoMeta}kg · {user.metaKcal.toLocaleString('pt-BR')} kcal/dia
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </Reveal>
+
+      {/* Level breakdown */}
+      <SectionHeader title="NÍVEIS POR EXERCÍCIO" />
+      <Reveal index={3}>
+        <Card padded={false}>
+          {exercises.map((ex, i) => {
+            const lvl = exerciseLevel(ex);
+            const latest = ex.history[ex.history.length - 1].topSet;
+            const ratio = latest / ex.referenceAvg;
+            return (
+              <View key={ex.id} style={[styles.lvlRow, i > 0 && styles.border]}>
+                <View style={[styles.lvlDot, { backgroundColor: lvl.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyMd">{ex.nome}</Text>
+                  <Text variant="caption" color={palette.inkFaint}>
+                    {latest}kg · {(ratio * 100).toFixed(0)}% da média
+                  </Text>
+                </View>
+                <Badge label={lvl.name} color={lvl.color} />
+              </View>
+            );
+          })}
+        </Card>
+      </Reveal>
+
+      {/* Settings */}
+      <SectionHeader title="AJUSTES" />
+      <Reveal index={4}>
+        <Card padded={false}>
+          <SettingRow icon={Music} color={palette.magenta} label="Conectar música" hint="YouTube" />
+          <SettingRow icon={Sparkles} color={palette.lime} label="IA de dieta" hint="Ativa" border />
+          <SettingRow icon={Bell} color={palette.cyan} label="Notificações" hint="On" border />
+          <SettingRow icon={Ruler} color={palette.gold} label="Unidades" hint="kg · cm" border />
+        </Card>
+      </Reveal>
+
+      <Reveal index={5}>
+        <PressableScale style={styles.logout} haptic={false}>
+          <LogOut size={18} color={palette.danger} strokeWidth={2.2} />
+          <Text variant="subtitle" color={palette.danger}>
+            Sair
+          </Text>
+        </PressableScale>
+      </Reveal>
+
+      <Text variant="mono" color={palette.inkFaint} center style={{ marginTop: space.lg }}>
+        v0.1 · feito no suor
+      </Text>
+    </Screen>
+  );
+}
+
+function Fact({ value, unit, label }: { value: string; unit: string; label: string }) {
+  return (
+    <View style={styles.fact}>
+      <View style={styles.factValueRow}>
+        <Text variant="stat">{value}</Text>
+        <Text variant="caption" color={palette.inkMuted} style={{ marginBottom: 3 }}>
+          {unit}
+        </Text>
+      </View>
+      <Text variant="caption" color={palette.inkFaint}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function SettingRow({
+  icon: Icon,
+  color,
+  label,
+  hint,
+  border,
+}: {
+  icon: LucideIcon;
+  color: string;
+  label: string;
+  hint?: string;
+  border?: boolean;
+}) {
+  return (
+    <PressableScale haptic={false}>
+      <View style={[styles.settingRow, border && styles.border]}>
+        <View style={[styles.settingIcon, { backgroundColor: color + '1A' }]}>
+          <Icon size={18} color={color} strokeWidth={2.2} />
+        </View>
+        <Text variant="bodyMd" style={{ flex: 1 }}>
+          {label}
+        </Text>
+        {hint ? (
+          <Text variant="caption" color={palette.inkMuted}>
+            {hint}
+          </Text>
+        ) : null}
+        <ChevronRight size={18} color={palette.inkFaint} />
+      </View>
+    </PressableScale>
+  );
+}
+
+const styles = StyleSheet.create({
+  profileHead: { alignItems: 'center', marginTop: space.md },
+  factsRow: { flexDirection: 'row', alignItems: 'center' },
+  fact: { flex: 1, alignItems: 'center', gap: 4 },
+  factValueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  factDivider: { width: 1, height: 34, backgroundColor: palette.border },
+  goalRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  goalIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lvlRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  lvlDot: { width: 10, height: 10, borderRadius: 5 },
+  border: { borderTopWidth: 1, borderTopColor: palette.border },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  settingIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    marginTop: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.danger + '44',
+    backgroundColor: palette.danger + '12',
+  },
+});

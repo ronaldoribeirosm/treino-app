@@ -1,56 +1,53 @@
-# Welcome to your Expo app 👋
+# Treino App (nome provisório)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App mobile de treino & dieta com camada social, gamificação (avatar + níveis),
+treino ao vivo, player de música e IA de dieta. Feito em **Expo + React Native**.
 
-## Get started
+> Documento de arquitetura completo em [`docs/PROJETO.md`](docs/PROJETO.md).
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Rodar
 
 ```bash
-npm run reset-project
+npm install
+
+# no navegador (preview rápido)
+npm run web
+
+# no celular: instala o app "Expo Go" (Play Store / App Store),
+# roda o comando abaixo e escaneia o QR code
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## O que já está pronto (v0.1 — front-end com dados de exemplo)
 
-### Other setup steps
+- **Design system** dark "arcade gym": tokens, tipografia (Bebas + Inter + Space Mono),
+  componentes (Text, Button, Card, Badge, PressableScale com mola + háptico).
+- **5 telas** navegáveis por uma tab bar flutuante custom:
+  - **Home** — avatar PowerCore animado, nível, motor de status (cruza treino×dieta),
+    KPIs, treino do dia, anel de kcal, evolução do supino, prévia do squad.
+  - **Treino** — sessão ao vivo, checklist de exercícios, pódio comparativo do grupo.
+  - **Stats** — previsão de objetivo, gráficos animados (peso, calorias, por exercício).
+  - **Squad** — caixa de entrada de treinos/dietas/receitas compartilhados (importar/ver),
+    lista de amigos com níveis.
+  - **Perfil** — dados, objetivo, níveis por exercício, ajustes.
+- **Gráficos** custom em SVG animados (linha com área/glow, anel de progresso, barras).
+- **Avatar PowerCore** — SVG animado que muda de cor/intensidade conforme o nível.
+- Lógica de **stats** (níveis, % de melhora, volume, regressão linear, previsão de meta).
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Próximas fases
 
-## Learn more
+Ver roadmap em `docs/PROJETO.md`. Resumo: wiring do **Supabase** (auth + banco),
+registro real de treino/dieta, **IA de dieta** (Gemini, entende áudio),
+**treino ao vivo** (realtime), **player YouTube** sincronizado.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Estrutura
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```
+src/
+  app/            rotas (expo-router): index, treino, progresso, social, perfil
+  components/     PowerCore, charts/, app-tabs, common
+  ui/             design system (Text, Button, Card, Badge, Screen, PressableScale)
+  theme/          tokens, fontes
+  lib/            stats (níveis, progressão, previsão)
+  data/           mock (dados de exemplo)
+```
