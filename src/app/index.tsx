@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-  Bell,
   ChevronRight,
   Dumbbell,
   Flame,
@@ -77,9 +76,13 @@ export default function HomeScreen() {
                 {user.streak}
               </Text>
             </View>
-            <PressableScale style={styles.iconBtn} haptic={false}>
-              <Bell size={20} color={palette.inkMuted} strokeWidth={2} />
-              <View style={styles.notifDot} />
+            <PressableScale
+              style={[styles.profileBtn, { borderColor: level.color }]}
+              onPress={() => router.push('/perfil')}
+              haptic={false}>
+              <Text variant="displaySm" color={level.color}>
+                {user.nome[0]}
+              </Text>
             </PressableScale>
           </View>
         </View>
@@ -287,24 +290,14 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: radius.pill,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
+  profileBtn: {
+    width: 42,
+    height: 42,
     borderRadius: radius.md,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
+    backgroundColor: palette.surfaceHi,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  notifDot: {
-    position: 'absolute',
-    top: 9,
-    right: 10,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: palette.magenta,
   },
   hero: { marginBottom: space.sm },
   heroInner: {

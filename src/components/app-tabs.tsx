@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { Dumbbell, House, TrendingUp, User, Users, type LucideIcon } from 'lucide-react-native';
+import { Dumbbell, House, Salad, TrendingUp, Users, type LucideIcon } from 'lucide-react-native';
 import { Tabs, TabList, TabSlot, TabTrigger, type TabTriggerSlotProps } from 'expo-router/ui';
 import { forwardRef } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -11,9 +11,9 @@ import { palette, radius, space, z } from '@/theme/tokens';
 const TABS: { name: string; href: string; label: string; icon: LucideIcon }[] = [
   { name: 'index', href: '/', label: 'Home', icon: House },
   { name: 'treino', href: '/treino', label: 'Treino', icon: Dumbbell },
+  { name: 'dieta', href: '/dieta', label: 'Dieta', icon: Salad },
   { name: 'progresso', href: '/progresso', label: 'Stats', icon: TrendingUp },
   { name: 'social', href: '/social', label: 'Squad', icon: Users },
-  { name: 'perfil', href: '/perfil', label: 'Perfil', icon: User },
 ];
 
 export default function AppTabs() {
@@ -35,11 +35,19 @@ export default function AppTabs() {
               <TabButton label={t.label} icon={t.icon} />
             </TabTrigger>
           ))}
+          {/* registered so router.push('/perfil') works, but not shown in the bar */}
+          <TabTrigger name="perfil" href={'/perfil' as never} asChild>
+            <HiddenTab />
+          </TabTrigger>
         </View>
       </TabList>
     </Tabs>
   );
 }
+
+const HiddenTab = forwardRef<View, TabTriggerSlotProps>(function HiddenTab(props, ref) {
+  return <Pressable ref={ref} {...props} style={styles.hidden} />;
+});
 
 interface TabButtonProps extends TabTriggerSlotProps {
   label: string;
@@ -107,5 +115,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
+  },
+  hidden: {
+    width: 0,
+    height: 0,
+    overflow: 'hidden',
   },
 });
