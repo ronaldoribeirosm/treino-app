@@ -7,6 +7,7 @@ import {
   Play,
   TrendingUp,
   Trophy,
+  Users,
   Zap,
 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -18,7 +19,7 @@ import { RingProgress } from '@/components/charts/RingProgress';
 import { PowerCore } from '@/components/PowerCore';
 import { Reveal, SectionHeader, StatTile, XPBar } from '@/components/common';
 import { exercises, kcalWeek, overallLevel } from '@/data/mock';
-import { useStore } from '@/store/useStore';
+import { friendColor, useStore } from '@/store/useStore';
 import { computeStatus } from '@/lib/stats';
 import { Badge } from '@/ui/Badge';
 import { Button } from '@/ui/Button';
@@ -57,7 +58,7 @@ export default function HomeScreen() {
   const statusColor =
     status.tone === 'good' ? palette.success : status.tone === 'warn' ? palette.warning : palette.danger;
 
-  const friends = useStore((s) => s.friends);
+  const friends = useStore((s) => s.cloudFriends);
   const doneCount = workout.exercicios.filter((e) => e.done).length;
 
   return (
@@ -224,28 +225,39 @@ export default function HomeScreen() {
       <SectionHeader title="SEU SQUAD" actionLabel="Abrir" onAction={() => router.push('/social')} />
       <Reveal index={7}>
         <Card padded={false}>
-          {friends.slice(0, 3).map((f, i) => (
-            <PressableScale key={f.id} haptic={false} onPress={() => router.push('/social')}>
-              <View style={[styles.friendRow, i > 0 && styles.friendBorder]}>
-                <View style={[styles.avatar, { borderColor: f.levelColor }]}>
-                  <Text variant="displaySm" color={f.levelColor}>
-                    {f.nome[0]}
-                  </Text>
-                  {f.online && <View style={styles.onlineDot} />}
-                </View>
+          {friends.length === 0 ? (
+            <PressableScale onPress={() => router.push('/social')} haptic={false}>
+              <View style={styles.squadEmpty}>
+                <Users size={22} color={palette.inkFaint} strokeWidth={2} />
                 <View style={{ flex: 1 }}>
-                  <View style={styles.friendNameRow}>
-                    <Text variant="subtitle">{f.nome}</Text>
-                    <Badge label={f.levelName} color={f.levelColor} />
-                  </View>
+                  <Text variant="bodyMd">Monte seu squad</Text>
                   <Text variant="caption" color={palette.inkMuted}>
-                    {f.lastAction}
+                    Adicione amigos pra treinar e comparar
                   </Text>
                 </View>
                 <ChevronRight size={18} color={palette.inkFaint} />
               </View>
             </PressableScale>
-          ))}
+          ) : (
+            friends.slice(0, 3).map((f, i) => (
+              <PressableScale key={f.friendshipId} haptic={false} onPress={() => router.push('/social')}>
+                <View style={[styles.friendRow, i > 0 && styles.friendBorder]}>
+                  <View style={[styles.avatar, { borderColor: friendColor(f.id) }]}>
+                    <Text variant="displaySm" color={friendColor(f.id)}>
+                      {f.nome[0]}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="subtitle">{f.nome}</Text>
+                    <Text variant="caption" color={palette.inkMuted}>
+                      @{f.handle} · {f.streak} dias
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={palette.inkFaint} />
+                </View>
+              </PressableScale>
+            ))
+          )}
         </Card>
       </Reveal>
 
@@ -378,4 +390,5 @@ const styles = StyleSheet.create({
     borderColor: palette.surface,
   },
   friendNameRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: 2 },
+  squadEmpty: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg },
 });

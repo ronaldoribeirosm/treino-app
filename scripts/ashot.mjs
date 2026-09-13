@@ -23,7 +23,9 @@ await page.getByPlaceholder('Seu nome').fill('Ronaldo');
 await page.getByPlaceholder('Email').fill(`shot_${Date.now()}@forja.app`);
 await page.getByPlaceholder('Senha').fill('treino123');
 await page.getByText('Criar conta', { exact: true }).last().click();
-await page.waitForTimeout(6000);
+// wait until we're actually logged in (home content present) before navigating
+await page.getByText('TREINO DE HOJE', { exact: false }).first().waitFor({ timeout: 20000 });
+await page.waitForTimeout(2500);
 
 async function scrollAndShot(name) {
   await page.waitForTimeout(3500);

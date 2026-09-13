@@ -56,8 +56,20 @@ Log honesto do que foi realmente construído e validado a cada etapa.
   (sem sessão → login; com sessão → app). Tela renderiza sem erros.
 - `.env` fora do Git; `.env.example` versionado.
 
-**Falta nesta etapa:** rodar o `schema.sql` no Supabase (ação do usuário), testar cadastro/login
-real, e sincronizar os dados (dieta, amigos, compartilhamentos) com a nuvem.
+**Concluído e validado (parte 1+2 — perfil/dieta):**
+- Cadastro cria perfil (trigger); app carrega perfil + dieta do dia da nuvem no login.
+- Registrar/remover refeição grava no Supabase por usuário. Provado limpando cache e recarregando.
+
+**Concluído e validado (parte 3 — social, teste com 2-3 contas reais):**
+- Editar @handle (Perfil); adicionar amigo por @; pedidos recebidos + aceitar; lista de amigos real.
+- Enviar treino/dieta pra um amigo; caixa de entrada real; importar (dieta recebida entra na sua).
+- **Segurança RLS validada:** um amigo NÃO vê a dieta privada do outro, só o que foi compartilhado.
+- Aba de Dieta dedicada + navegação reorganizada (5 abas; Perfil no avatar da Home).
+
+**Etapa B concluída.** App usável de verdade entre amigos.
+
+**Pendências pós-B:** sincronizar treino/sessões e stats (ainda mock), cron anti-pausa do Supabase,
+limpar contas de teste criadas durante o desenvolvimento.
 
 **Nome do app:** provisório "FORJA" (trocável).
 

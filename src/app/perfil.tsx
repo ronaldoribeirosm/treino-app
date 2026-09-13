@@ -3,18 +3,22 @@ import {
   ChevronRight,
   LogOut,
   Music,
+  Pencil,
   Ruler,
   Sparkles,
   Target,
   type LucideIcon,
 } from 'lucide-react-native';
-import { View, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { TextInput, View, StyleSheet } from 'react-native';
 
 import { PowerCore } from '@/components/PowerCore';
 import { Reveal, SectionHeader } from '@/components/common';
 import { exercises, exerciseLevel, overallLevel } from '@/data/mock';
 import { useStore } from '@/store/useStore';
 import { Badge } from '@/ui/Badge';
+import { BottomSheet } from '@/ui/BottomSheet';
+import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { PressableScale } from '@/ui/PressableScale';
 import { Screen } from '@/ui/Screen';
@@ -30,8 +34,19 @@ const goalLabel: Record<string, string> = {
 export default function PerfilScreen() {
   const level = overallLevel();
   const profile = useStore((s) => s.profile);
+  const setHandle = useStore((s) => s.setHandle);
   const showToast = useStore((s) => s.showToast);
   const soon = (o: string) => showToast(`${o} vem em breve`, 'info');
+  const [handleOpen, setHandleOpen] = useState(false);
+  const [handleInput, setHandleInput] = useState('');
+
+  const saveHandle = async () => {
+    const ok = await setHandle(handleInput);
+    if (ok) {
+      setHandleInput('');
+      setHandleOpen(false);
+    }
+  };
 
   return (
     <Screen>
@@ -45,9 +60,18 @@ export default function PerfilScreen() {
           <Text variant="display" style={{ marginTop: space.md }}>
             {profile.nome.toUpperCase()}
           </Text>
-          <Text variant="caption" color={palette.inkMuted}>
-            {profile.handle}
-          </Text>
+          <PressableScale
+            onPress={() => {
+              setHandleInput(profile.handle.replace(/^@/, ''));
+              setHandleOpen(true);
+            }}
+            haptic={false}
+            style={styles.handleBtn}>
+            <Text variant="caption" color={palette.inkMuted}>
+              {profile.handle}
+            </Text>
+            <Pencil size={12} color={palette.inkFaint} strokeWidth={2.2} />
+          </PressableScale>
           <View style={{ marginTop: space.sm }}>
             <Badge label={`NÍVEL ${level.name}`} color={level.color} />
           </View>
@@ -132,6 +156,26 @@ export default function PerfilScreen() {
       <Text variant="mono" color={palette.inkFaint} center style={{ marginTop: space.lg }}>
         v0.1 · feito no suor
       </Text>
+
+      <BottomSheet visible={handleOpen} onClose={() => setHandleOpen(false)} title="Seu @handle">
+        <Text variant="caption" color={palette.inkMuted} style={{ marginBottom: space.md }}>
+          É como os amigos te acham no squad. Só letras, números e _.
+        </Text>
+        <View style={styles.handleField}>
+          <Text variant="subtitle" color={palette.inkMuted}>
+            @
+          </Text>
+          <TextInput
+            value={handleInput}
+            onChangeText={(t) => setHandleInput(t.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())}
+            placeholder="seunome"
+            placeholderTextColor={palette.inkFaint}
+            autoCapitalize="none"
+            style={styles.handleInput}
+          />
+        </View>
+        <Button label="Salvar @" onPress={saveHandle} style={{ marginTop: space.md }} />
+      </BottomSheet>
     </Screen>
   );
 }
@@ -189,6 +233,19 @@ function SettingRow({
 
 const styles = StyleSheet.create({
   profileHead: { alignItems: 'center', marginTop: space.md },
+  handleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 2 },
+  handleField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    paddingHorizontal: space.lg,
+    height: 54,
+  },
+  handleInput: { flex: 1, color: palette.ink, fontFamily: 'Inter_600SemiBold', fontSize: 16, height: '100%' },
   factsRow: { flexDirection: 'row', alignItems: 'center' },
   fact: { flex: 1, alignItems: 'center', gap: 4 },
   factValueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },

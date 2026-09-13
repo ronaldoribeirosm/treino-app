@@ -4,14 +4,10 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { supabase } from '@/lib/supabase';
 import {
-  friends as seedFriends,
-  inbox as seedInbox,
   todayDiet as seedDiet,
   todayWorkout as seedWorkout,
   user,
   type DietEntry,
-  type Friend,
-  type SharedItem,
 } from '@/data/mock';
 
 export interface WorkoutExercise {
@@ -43,6 +39,39 @@ export interface Profile {
   streak: number;
 }
 
+export interface CloudFriend {
+  friendshipId: string;
+  id: string;
+  nome: string;
+  handle: string;
+  streak: number;
+}
+
+export interface PendingReq {
+  friendshipId: string;
+  id: string;
+  nome: string;
+  handle: string;
+}
+
+export type ShareTipo = 'treino' | 'dieta' | 'receita';
+export interface CloudShare {
+  id: string;
+  fromNome: string;
+  tipo: ShareTipo;
+  titulo: string;
+  detalhe: string;
+  payload: unknown;
+}
+
+/** Deterministic accent color for a friend avatar (real friends have no computed level yet). */
+const FRIEND_COLORS = ['#4ADE80', '#38BDF8', '#A855F7', '#FFC53D', '#FF2E97', '#2BE7FF'];
+export function friendColor(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return FRIEND_COLORS[h % FRIEND_COLORS.length];
+}
+
 const seedProfile: Profile = {
   id: null,
   nome: user.nome,
@@ -71,9 +100,9 @@ interface AppState {
   workout: { nome: string; exercicios: WorkoutExercise[] };
   diet: DietEntry[];
   dietDate: string; // YYYY-MM-DD the diet/workout belongs to
-  inbox: SharedItem[];
-  friends: Friend[];
-  importedCount: number;
+  cloudFriends: CloudFriend[];
+  pending: PendingReq[];
+  cloudInbox: CloudShare[];
   toast: ToastState | null;
   hydrated: boolean;
 
@@ -84,11 +113,16 @@ interface AppState {
   // actions
   setProfile: (p: Partial<Profile>) => void;
   loadCloud: (userId: string) => Promise<void>;
+  loadSocial: (userId: string) => Promise<void>;
+  setHandle: (handle: string) => Promise<boolean>;
+  sendFriendRequest: (handle: string) => Promise<void>;
+  acceptFriend: (friendshipId: string) => Promise<void>;
+  sendShare: (paraId: string, tipo: ShareTipo, titulo: string, detalhe: string, payload: unknown) => Promise<void>;
+  importShare: (share: CloudShare) => void;
+  clearInbox: () => void;
   toggleExercise: (id: string) => void;
   addMeal: (entry: Omit<DietEntry, 'id'>) => void;
   removeMeal: (id: string) => void;
-  importItem: (id: string) => void;
-  clearInbox: () => void;
   showToast: (msg: string, tone?: ToastTone) => void;
   hideToast: () => void;
   rolloverDay: () => void;
@@ -120,9 +154,9 @@ export const useStore = create<AppState>()(
       workout: { nome: seedWorkout.nome, exercicios: seedExercicios() },
       diet: [...seedDiet],
       dietDate: todayStr(),
-      inbox: [...seedInbox],
-      friends: [...seedFriends],
-      importedCount: 0,
+      cloudFriends: [],
+      pending: [],
+      cloudInbox: [],
       toast: null,
       hydrated: false,
 
@@ -175,6 +209,125 @@ export const useStore = create<AppState>()(
             dietDate: todayStr(),
           });
         }
+        await get().loadSocial(userId);
+      },
+
+      // Load real friends, incoming requests and received shares.
+      loadSocial: async (userId) => {
+        const { data: fs } = await supabase
+          .from('friendships')
+          .select('*')
+          .or(`user_a.eq.${userId},user_b.eq.${userId}`);
+        const { data: shares } = await supabase
+          .from('shared_items')
+          .select('*')
+          .eq('para_id', userId)
+          .order('created_at', { ascending: false });
+
+        const otherId = (f: { user_a: string; user_b: string }) =>
+          f.user_a === userId ? f.user_b : f.user_a;
+        const ids = new Set<string>();
+        (fs ?? []).forEach((f) => ids.add(otherId(f)));
+        (shares ?? []).forEach((s) => ids.add(s.de_id));
+
+        let profs: Record<string, { nome: string; handle: string; streak: number }> = {};
+        if (ids.size) {
+          const { data: ps } = await supabase
+            .from('profiles')
+            .select('id,nome,handle,streak')
+            .in('id', [...ids]);
+          (ps ?? []).forEach((p) => {
+            profs[p.id] = { nome: p.nome, handle: p.handle, streak: p.streak ?? 0 };
+          });
+        }
+        const nameOf = (id: string) => profs[id]?.nome ?? 'Atleta';
+
+        const cloudFriends: CloudFriend[] = (fs ?? [])
+          .filter((f) => f.status === 'aceito')
+          .map((f) => {
+            const oid = otherId(f);
+            return { friendshipId: f.id, id: oid, nome: nameOf(oid), handle: profs[oid]?.handle ?? '', streak: profs[oid]?.streak ?? 0 };
+          });
+        const pending: PendingReq[] = (fs ?? [])
+          .filter((f) => f.status === 'pendente' && f.user_b === userId)
+          .map((f) => ({ friendshipId: f.id, id: f.user_a, nome: nameOf(f.user_a), handle: profs[f.user_a]?.handle ?? '' }));
+        const cloudInbox: CloudShare[] = (shares ?? []).map((s) => ({
+          id: s.id,
+          fromNome: nameOf(s.de_id),
+          tipo: s.tipo,
+          titulo: s.titulo,
+          detalhe: s.detalhe ?? '',
+          payload: s.payload,
+        }));
+        set({ cloudFriends, pending, cloudInbox });
+      },
+
+      setHandle: async (handle) => {
+        const clean = handle.trim().replace(/^@/, '').toLowerCase();
+        const userId = get().profile.id;
+        if (!userId || clean.length < 3) {
+          get().showToast('Handle muito curto', 'warn');
+          return false;
+        }
+        const { error } = await supabase.from('profiles').update({ handle: clean }).eq('id', userId);
+        if (error) {
+          get().showToast(/duplicate|unique/i.test(error.message) ? 'Esse @ já está em uso' : 'Não deu pra salvar', 'warn');
+          return false;
+        }
+        set((s) => ({ profile: { ...s.profile, handle: `@${clean}` } }));
+        get().showToast(`Seu @ agora é @${clean}`, 'good');
+        return true;
+      },
+
+      sendFriendRequest: async (handle) => {
+        const clean = handle.trim().replace(/^@/, '').toLowerCase();
+        const me = get().profile.id;
+        if (!me) return;
+        const { data: found } = await supabase.from('profiles').select('id,nome').eq('handle', clean).maybeSingle();
+        if (!found) {
+          get().showToast(`Ninguém com @${clean}`, 'warn');
+          return;
+        }
+        if (found.id === me) {
+          get().showToast('Esse é você 😅', 'warn');
+          return;
+        }
+        const { error } = await supabase.from('friendships').insert({ user_a: me, user_b: found.id, status: 'pendente' });
+        if (error) {
+          get().showToast(/duplicate|unique/i.test(error.message) ? 'Pedido já existe' : 'Não deu pra enviar', 'warn');
+          return;
+        }
+        get().showToast(`Pedido enviado pro ${found.nome}`, 'good');
+      },
+
+      acceptFriend: async (friendshipId) => {
+        await supabase.from('friendships').update({ status: 'aceito' }).eq('id', friendshipId);
+        const me = get().profile.id;
+        if (me) await get().loadSocial(me);
+        get().showToast('Amizade aceita 🤝', 'good');
+      },
+
+      sendShare: async (paraId, tipo, titulo, detalhe, payload) => {
+        const me = get().profile.id;
+        if (!me) return;
+        const { error } = await supabase.from('shared_items').insert({ de_id: me, para_id: paraId, tipo, titulo, detalhe, payload });
+        get().showToast(error ? 'Não deu pra enviar' : 'Enviado! 🚀', error ? 'warn' : 'good');
+      },
+
+      importShare: (share) => {
+        // dieta: adiciona as refeições recebidas na sua dieta de hoje
+        if (share.tipo === 'dieta' && Array.isArray(share.payload)) {
+          (share.payload as Omit<DietEntry, 'id'>[]).forEach((e) => get().addMeal(e));
+        }
+        set((s) => ({ cloudInbox: s.cloudInbox.filter((i) => i.id !== share.id) }));
+        supabase.from('shared_items').update({ copiado: true }).eq('id', share.id).then(() => {});
+        get().showToast(`${share.titulo} importado!`, 'good');
+      },
+
+      clearInbox: () => {
+        const me = get().profile.id;
+        set({ cloudInbox: [] });
+        if (me) supabase.from('shared_items').delete().eq('para_id', me).then(() => {});
       },
 
       addMeal: (entry) => {
@@ -195,14 +348,6 @@ export const useStore = create<AppState>()(
         set((s) => ({ diet: s.diet.filter((d) => d.id !== id) }));
         if (get().profile.id) supabase.from('diet_entries').delete().eq('id', id).then(() => {});
       },
-
-      importItem: (id) =>
-        set((s) => ({
-          inbox: s.inbox.filter((i) => i.id !== id),
-          importedCount: s.importedCount + 1,
-        })),
-
-      clearInbox: () => set({ inbox: [] }),
 
       showToast: (msg, tone = 'good') => set({ toast: { id: toastSeq++, msg, tone } }),
       hideToast: () => set({ toast: null }),
@@ -234,9 +379,6 @@ export const useStore = create<AppState>()(
         workout: s.workout,
         diet: s.diet,
         dietDate: s.dietDate,
-        inbox: s.inbox,
-        friends: s.friends,
-        importedCount: s.importedCount,
       }),
       onRehydrateStorage: () => (state) => {
         state?.rolloverDay();
