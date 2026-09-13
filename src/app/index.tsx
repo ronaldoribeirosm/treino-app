@@ -17,7 +17,7 @@ import { LineChart } from '@/components/charts/LineChart';
 import { RingProgress } from '@/components/charts/RingProgress';
 import { PowerCore } from '@/components/PowerCore';
 import { Reveal, SectionHeader, StatTile, XPBar } from '@/components/common';
-import { exercises, kcalWeek, overallLevel, user } from '@/data/mock';
+import { exercises, kcalWeek, overallLevel } from '@/data/mock';
 import { useStore } from '@/store/useStore';
 import { computeStatus } from '@/lib/stats';
 import { Badge } from '@/ui/Badge';
@@ -36,6 +36,8 @@ export default function HomeScreen() {
 
   const diet = useStore((s) => s.diet);
   const workout = useStore((s) => s.workout);
+  const profile = useStore((s) => s.profile);
+  const xpToNext = 10000;
   const [mealOpen, setMealOpen] = useState(false);
 
   const todayKcal = diet.reduce((a, d) => a + d.kcal, 0);
@@ -49,8 +51,8 @@ export default function HomeScreen() {
     workoutsThisWeek: 4,
     targetWorkouts: 5,
     avgKcal,
-    metaKcal: user.metaKcal,
-    goal: user.goal,
+    metaKcal: profile.meta_kcal,
+    goal: profile.goal,
   });
   const statusColor =
     status.tone === 'good' ? palette.success : status.tone === 'warn' ? palette.warning : palette.danger;
@@ -67,13 +69,13 @@ export default function HomeScreen() {
             <Text variant="caption" color={palette.inkMuted}>
               E aí,
             </Text>
-            <Text variant="display">{user.nome.toUpperCase()}</Text>
+            <Text variant="display">{profile.nome.toUpperCase()}</Text>
           </View>
           <View style={styles.headerRight}>
             <View style={styles.streakChip}>
               <Flame size={15} color={palette.magenta} strokeWidth={2.6} />
               <Text variant="label" color={palette.magenta}>
-                {user.streak}
+                {profile.streak}
               </Text>
             </View>
             <PressableScale
@@ -81,7 +83,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/perfil')}
               haptic={false}>
               <Text variant="displaySm" color={level.color}>
-                {user.nome[0]}
+                {profile.nome[0]}
               </Text>
             </PressableScale>
           </View>
@@ -107,10 +109,10 @@ export default function HomeScreen() {
                 {level.name}
               </Text>
               <Text variant="caption" color={palette.inkMuted} style={{ marginTop: 2 }}>
-                {user.xp.toLocaleString('pt-BR')} / {user.xpToNext.toLocaleString('pt-BR')} XP
+                {profile.xp.toLocaleString('pt-BR')} / {xpToNext.toLocaleString('pt-BR')} XP
               </Text>
               <View style={{ marginTop: 10 }}>
-                <XPBar value={user.xp} max={user.xpToNext} color={level.color} />
+                <XPBar value={profile.xp} max={xpToNext} color={level.color} />
               </View>
             </View>
           </View>
@@ -135,7 +137,7 @@ export default function HomeScreen() {
       {/* KPI row */}
       <Reveal index={3}>
         <View style={styles.kpiRow}>
-          <StatTile icon={Flame} value={String(user.streak)} unit="dias" label="Ofensiva" color={palette.magenta} />
+          <StatTile icon={Flame} value={String(profile.streak)} unit="dias" label="Ofensiva" color={palette.magenta} />
           <StatTile icon={Zap} value="28,6" unit="k kg" label="Volume 7d" color={palette.lime} />
           <StatTile icon={Trophy} value="3" label="PRs no mês" color={palette.gold} />
         </View>
@@ -177,11 +179,11 @@ export default function HomeScreen() {
       <Reveal index={5}>
         <Card>
           <View style={styles.nutriRow}>
-            <RingProgress progress={todayKcal / user.metaKcal} size={116} stroke={12}>
+            <RingProgress progress={todayKcal / profile.meta_kcal} size={116} stroke={12}>
               <View style={{ alignItems: 'center' }}>
                 <Text variant="stat">{todayKcal.toLocaleString('pt-BR')}</Text>
                 <Text variant="caption" color={palette.inkFaint}>
-                  / {user.metaKcal.toLocaleString('pt-BR')}
+                  / {profile.meta_kcal.toLocaleString('pt-BR')}
                 </Text>
               </View>
             </RingProgress>

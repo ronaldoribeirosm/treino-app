@@ -12,7 +12,7 @@ import { View, StyleSheet } from 'react-native';
 
 import { PowerCore } from '@/components/PowerCore';
 import { Reveal, SectionHeader } from '@/components/common';
-import { exercises, exerciseLevel, overallLevel, user } from '@/data/mock';
+import { exercises, exerciseLevel, overallLevel } from '@/data/mock';
 import { useStore } from '@/store/useStore';
 import { Badge } from '@/ui/Badge';
 import { Card } from '@/ui/Card';
@@ -21,8 +21,15 @@ import { Screen } from '@/ui/Screen';
 import { Text } from '@/ui/Text';
 import { palette, radius, space } from '@/theme/tokens';
 
+const goalLabel: Record<string, string> = {
+  bulking: 'Ganhar massa (bulking)',
+  cutting: 'Perder gordura (cutting)',
+  manter: 'Manter o peso',
+};
+
 export default function PerfilScreen() {
   const level = overallLevel();
+  const profile = useStore((s) => s.profile);
   const showToast = useStore((s) => s.showToast);
   const soon = (o: string) => showToast(`${o} vem em breve`, 'info');
 
@@ -32,14 +39,14 @@ export default function PerfilScreen() {
         <View style={styles.profileHead}>
           <PowerCore color={level.color} size={104}>
             <Text variant="hero" color={level.color} style={{ fontSize: 40, lineHeight: 40 }}>
-              {user.nome[0]}
+              {profile.nome[0]}
             </Text>
           </PowerCore>
           <Text variant="display" style={{ marginTop: space.md }}>
-            {user.nome.toUpperCase()}
+            {profile.nome.toUpperCase()}
           </Text>
           <Text variant="caption" color={palette.inkMuted}>
-            {user.handle}
+            {profile.handle}
           </Text>
           <View style={{ marginTop: space.sm }}>
             <Badge label={`NÍVEL ${level.name}`} color={level.color} />
@@ -51,11 +58,11 @@ export default function PerfilScreen() {
       <Reveal index={1}>
         <Card style={{ marginTop: space.xl }}>
           <View style={styles.factsRow}>
-            <Fact value={`${user.pesoAtual.toFixed(1)}`} unit="kg" label="Peso" />
+            <Fact value={`${profile.peso_atual.toFixed(1)}`} unit="kg" label="Peso" />
             <View style={styles.factDivider} />
-            <Fact value={`${user.altura}`} unit="cm" label="Altura" />
+            <Fact value={`${profile.altura}`} unit="cm" label="Altura" />
             <View style={styles.factDivider} />
-            <Fact value={`${user.streak}`} unit="d" label="Ofensiva" />
+            <Fact value={`${profile.streak}`} unit="d" label="Ofensiva" />
           </View>
         </Card>
       </Reveal>
@@ -69,9 +76,9 @@ export default function PerfilScreen() {
               <Target size={22} color={palette.cyan} strokeWidth={2.2} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text variant="subtitle">Ganhar massa (bulking)</Text>
+              <Text variant="subtitle">{goalLabel[profile.goal] ?? profile.goal}</Text>
               <Text variant="caption" color={palette.inkMuted}>
-                Meta: {user.pesoMeta}kg · {user.metaKcal.toLocaleString('pt-BR')} kcal/dia
+                Meta: {profile.peso_meta}kg · {profile.meta_kcal.toLocaleString('pt-BR')} kcal/dia
               </Text>
             </View>
           </View>

@@ -5,7 +5,8 @@ import { View, StyleSheet } from 'react-native';
 import { BarChart } from '@/components/charts/BarChart';
 import { LineChart } from '@/components/charts/LineChart';
 import { Reveal, SectionHeader } from '@/components/common';
-import { bodyweightHistory, exercises, exerciseLevel, kcalWeek, user } from '@/data/mock';
+import { bodyweightHistory, exercises, exerciseLevel, kcalWeek } from '@/data/mock';
+import { useStore } from '@/store/useStore';
 import { pctChange, projectGoal } from '@/lib/stats';
 import { Badge } from '@/ui/Badge';
 import { Card } from '@/ui/Card';
@@ -14,10 +15,11 @@ import { Text } from '@/ui/Text';
 import { palette, radius, space } from '@/theme/tokens';
 
 export default function ProgressoScreen() {
+  const profile = useStore((s) => s.profile);
   const weights = bodyweightHistory.map((b) => b.kg);
   const avgKcal = Math.round(kcalWeek.reduce((a, d) => a + d.kcal, 0) / kcalWeek.length);
   const balance = avgKcal - 2600;
-  const proj = projectGoal(balance, user.pesoAtual, user.pesoMeta);
+  const proj = projectGoal(balance, profile.peso_atual, profile.peso_meta);
 
   return (
     <Screen>
@@ -45,7 +47,7 @@ export default function ProgressoScreen() {
             <View style={styles.projRow}>
               <View>
                 <Text variant="hero" style={{ fontSize: 40, lineHeight: 40 }}>
-                  {user.pesoAtual.toFixed(1)}
+                  {profile.peso_atual.toFixed(1)}
                 </Text>
                 <Text variant="caption" color={palette.inkFaint}>
                   peso atual (kg)
@@ -54,7 +56,7 @@ export default function ProgressoScreen() {
               <ArrowUpRight size={26} color={palette.inkFaint} />
               <View>
                 <Text variant="hero" color={palette.cyan} style={{ fontSize: 40, lineHeight: 40 }}>
-                  {user.pesoMeta.toFixed(0)}
+                  {profile.peso_meta.toFixed(0)}
                 </Text>
                 <Text variant="caption" color={palette.inkFaint}>
                   meta (kg)
@@ -84,7 +86,7 @@ export default function ProgressoScreen() {
           <View style={styles.rowBetween}>
             <View style={styles.valueRow}>
               <Text variant="hero" style={{ fontSize: 40, lineHeight: 40 }}>
-                {user.pesoAtual.toFixed(1)}
+                {profile.peso_atual.toFixed(1)}
               </Text>
               <Text variant="displaySm" color={palette.inkMuted} style={{ marginBottom: 5 }}>
                 KG
@@ -112,14 +114,14 @@ export default function ProgressoScreen() {
             <View style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: palette.lime }]} />
               <Text variant="caption" color={palette.inkMuted}>
-                acima da meta ({user.metaKcal.toLocaleString('pt-BR')})
+                acima da meta ({profile.meta_kcal.toLocaleString('pt-BR')})
               </Text>
             </View>
           </View>
           <View style={{ marginTop: space.md }}>
             <BarChart
               data={kcalWeek.map((k) => ({ label: k.dia, value: k.kcal }))}
-              target={user.metaKcal}
+              target={profile.meta_kcal}
               height={110}
             />
           </View>

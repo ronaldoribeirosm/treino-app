@@ -18,12 +18,18 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();
   const hydrated = useStore((s) => s.hydrated);
+  const loadCloud = useStore((s) => s.loadCloud);
   const { session, loading: authLoading } = useAuth();
   const ready = fontsLoaded && hydrated && !authLoading;
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
+
+  // pull the user's profile + today's diet from the cloud on sign-in
+  useEffect(() => {
+    if (session?.user?.id) loadCloud(session.user.id).catch(() => {});
+  }, [session?.user?.id, loadCloud]);
 
   if (!ready) {
     return <View style={{ flex: 1, backgroundColor: palette.bg }} />;

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { supabase } from '@/lib/supabase';
 import {
   friends as seedFriends,
   inbox as seedInbox,
@@ -29,7 +30,43 @@ export interface ToastState {
   tone: ToastTone;
 }
 
+export interface Profile {
+  id: string | null;
+  nome: string;
+  handle: string;
+  peso_atual: number;
+  peso_meta: number;
+  altura: number;
+  goal: 'bulking' | 'cutting' | 'manter';
+  meta_kcal: number;
+  xp: number;
+  streak: number;
+}
+
+const seedProfile: Profile = {
+  id: null,
+  nome: user.nome,
+  handle: user.handle,
+  peso_atual: user.pesoAtual,
+  peso_meta: user.pesoMeta,
+  altura: user.altura,
+  goal: user.goal,
+  meta_kcal: user.metaKcal,
+  xp: user.xp,
+  streak: user.streak,
+};
+
+/** RFC4122-ish v4 id (fine for client-generated row ids). */
+function uid(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 interface AppState {
+  profile: Profile;
   metaKcal: number;
   workout: { nome: string; exercicios: WorkoutExercise[] };
   diet: DietEntry[];
@@ -45,6 +82,8 @@ interface AppState {
   doneCount: () => number;
 
   // actions
+  setProfile: (p: Partial<Profile>) => void;
+  loadCloud: (userId: string) => Promise<void>;
   toggleExercise: (id: string) => void;
   addMeal: (entry: Omit<DietEntry, 'id'>) => void;
   removeMeal: (id: string) => void;
@@ -76,6 +115,7 @@ function seedExercicios(): WorkoutExercise[] {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
+      profile: seedProfile,
       metaKcal: user.metaKcal,
       workout: { nome: seedWorkout.nome, exercicios: seedExercicios() },
       diet: [...seedDiet],
@@ -97,12 +137,64 @@ export const useStore = create<AppState>()(
           return { workout: { ...s.workout, exercicios } };
         }),
 
-      addMeal: (entry) =>
-        set((s) => ({
-          diet: [...s.diet, { ...entry, id: `d${Date.now()}` }],
-        })),
+      setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
 
-      removeMeal: (id) => set((s) => ({ diet: s.diet.filter((d) => d.id !== id) })),
+      // Load the signed-in user's profile + today's diet from Supabase.
+      loadCloud: async (userId) => {
+        const [{ data: prof }, { data: rows }] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', userId).single(),
+          supabase.from('diet_entries').select('*').eq('user_id', userId).eq('data', todayStr()),
+        ]);
+        if (prof) {
+          const merged: Profile = {
+            id: prof.id,
+            nome: prof.nome ?? seedProfile.nome,
+            handle: prof.handle ? `@${prof.handle}` : seedProfile.handle,
+            peso_atual: prof.peso_atual ?? seedProfile.peso_atual,
+            peso_meta: prof.peso_meta ?? seedProfile.peso_meta,
+            altura: prof.altura ?? seedProfile.altura,
+            goal: prof.goal ?? seedProfile.goal,
+            meta_kcal: prof.meta_kcal ?? seedProfile.meta_kcal,
+            xp: prof.xp ?? 0,
+            streak: prof.streak ?? 0,
+          };
+          set({ profile: merged, metaKcal: merged.meta_kcal });
+        }
+        if (rows) {
+          set({
+            diet: rows.map((r) => ({
+              id: r.id,
+              refeicao: r.refeicao ?? '',
+              alimento: r.alimento,
+              kcal: r.kcal,
+              prot: r.prot,
+              carb: r.carb,
+              gord: r.gord,
+              origem: r.origem,
+            })),
+            dietDate: todayStr(),
+          });
+        }
+      },
+
+      addMeal: (entry) => {
+        const id = uid();
+        set((s) => ({ diet: [...s.diet, { ...entry, id }] }));
+        const userId = get().profile.id;
+        if (userId) {
+          supabase
+            .from('diet_entries')
+            .insert({ id, user_id: userId, data: todayStr(), ...entry })
+            .then(({ error }) => {
+              if (error) get().showToast('Não sincronizou a refeição', 'warn');
+            });
+        }
+      },
+
+      removeMeal: (id) => {
+        set((s) => ({ diet: s.diet.filter((d) => d.id !== id) }));
+        if (get().profile.id) supabase.from('diet_entries').delete().eq('id', id).then(() => {});
+      },
 
       importItem: (id) =>
         set((s) => ({
@@ -137,6 +229,7 @@ export const useStore = create<AppState>()(
       storage: createJSONStorage(() => AsyncStorage),
       // persist only serializable data (skip the transient toast + derived fns)
       partialize: (s) => ({
+        profile: s.profile,
         metaKcal: s.metaKcal,
         workout: s.workout,
         diet: s.diet,
